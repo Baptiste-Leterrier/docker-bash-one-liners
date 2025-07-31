@@ -1,0 +1,7 @@
+# Show Containers with Mounted Volumes
+# To see which containers might be storing big data in volumes:
+# Add it to .bashrc then source .bashrc
+
+
+
+alias docker-mounts='docker ps -q | while read id; do name=$(docker inspect --format "{{.Name}}" $id | sed "s/^\/ //"); vols=$(docker inspect --format "{{range .Mounts}}{{.Source}} -> {{.Destination}}{{\"\n\"}}{{end}}" $id); echo "$name:"; echo "$vols"; done'
