@@ -1,0 +1,34 @@
+# put in .bashrc then source .bashrc
+
+docker_disk_usage() {
+  tmpfile=$(mktemp)
+
+  # Collect data: TOTAL_BYTES | NAME | ID | LOG | OVERLAY | TOTAL_HUMAN
+  docker ps -q | while read id; do
+    name=$(docker inspect --format "{{.Name}}" $id | sed 's/^\/ //')
+    log=$(docker inspect --format "{{.LogPath}}" $id)
+    log_size=$(stat -c%s "$log" 2>/dev/null || echo 0)
+    log_human=$(du -h "$log" 2>/dev/null | cut -f1)
+
+    upper=$(docker inspect --format "{{.GraphDriver.Data.UpperDir}}" $id)
+    overlay_dir=$(dirname "$upper")
+    overlay_size_bytes=$(du -sb "$overlay_dir" | cut -f1)
+    overlay_human=$(du -sh "$overlay_dir" | cut -f1)
+
+    total=$((log_size + overlay_size_bytes))
+    total_human=$(numfmt --to=iec-i --suffix=B $total)
+
+    echo "$total|$name|$id|$log_human|$overlay_human|$total_human" >> "$tmpfile"
+  done
+
+  # Print header
+  printf "%-25s %-15s %-10s %-10s %-10s\n" "CONTAINER" "ID" "LOG" "OVERLAY" "TOTAL"
+  printf "%0.s-" {1..80}; echo
+
+  # Sort by total bytes and format
+  sort -t'|' -k1,1nr "$tmpfile" | while IFS='|' read -r total name id log overlay total_human; do
+    printf "%-25s %-15s %-10s %-10s %-10s\n" "$name" "$id" "$log" "$overlay" "$total_human"
+  done
+
+  rm "$tmpfile"
+}
