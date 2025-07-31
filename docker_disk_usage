@@ -1,4 +1,5 @@
 # put in .bashrc then source .bashrc
+# Use with calling the command docker_disk_usage
 
 docker_disk_usage() {
   tmpfile=$(mktemp)
